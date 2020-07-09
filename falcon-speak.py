@@ -26,21 +26,21 @@ def main():
             sys.exit()
         else:
             print("\n[+] Getting list of Falcon detections...")
-            detectionids = getListOfDetections(config.API_URL, args.token)
+            detection_ids = getListOfDetections(config.API_URL, args.token)
             print("\n[+] Getting full info on the detection items...")
-            getDetectionInfo(config.API_URL, args.token, detectionids)
+            getDetectionInfo(config.API_URL, args.token, detection_ids)
     else:
         parser.print_help(sys.stderr)
 
 
-def getOauthToken(apiurl, clientid, clientsecret):
-    endpoint = "{}/oauth2/token".format(apiurl)
+def getOauthToken(api_url, client_id, client_secret):
+    endpoint_uri = "{}/oauth2/token".format(api_url)
     data = {
-        "client_id" : clientid,
-        "client_secret": clientsecret
+        "client_id" : client_id,
+        "client_secret": client_secret
     }
 
-    r = requests.post(endpoint, data=data)
+    r = requests.post(endpoint_uri, data=data)
     if r.status_code == 201:
         print("[+] Successful token request...")
         j = r.json()
@@ -56,24 +56,26 @@ def getOauthToken(apiurl, clientid, clientsecret):
 
 
 
-def getListOfDetections(apiurl, token, offset=0, limit=10):
+def getListOfDetections(api_url, token, offset=0, limit=10):
     '''
-    This function returns a list object, containing the IDs of the detection events
-    in Falcon. this list of IDs are found in the "resources" key in the JSON
-    response of the initial GET request
+        this function returns a list object, containing the IDs of the detection events
+        in Falcon. this list of IDs are found in the "resources" key in the JSON
+        response of the initial GET request
     '''
-    endpoint = "{}/detects/queries/detects/v1".format(apiurl)
+    endpoint_uri = "{}/detects/queries/detects/v1".format(api_url)
     headers = {
         "Content-type" : "application/json",
         "Accept" : "application/json",
         "Authorization" : "Bearer {}".format(token)
     }
-    data = {
+    params = {
         "offset" : offset,
         "limit" : limit
     }
 
-    r = requests.get(endpoint, headers=headers, data=data)
+    r = requests.get(endpoint_uri, headers=headers, params=params)
+    # noting here that params=json.dumps(params) does NOT work, params should be a JSON object
+    # this is difference to POST where data should be a string, not a JSON object
     if r.status_code == 200:
         print("[+] Successful request for detection list...")
         j = r.json()
@@ -89,18 +91,24 @@ def getListOfDetections(apiurl, token, offset=0, limit=10):
         sys.exit()
 
 
-def getDetectionInfo(apiurl, token, detectionids):
-    endpoint = "{}/detects/entities/summaries/GET/v1".format(apiurl)
+def getDetectionInfo(api_url, token, detection_ids):
+    '''
+        from the list object of detection IDs obtained from getListOfDetections, we now
+        query a different API endpoint for more info on those detections
+    '''
+    endpoint_uri = "{}/detects/entities/summaries/GET/v1".format(api_url)
     headers = {
         "Content-type" : "application/json",
         "Accept" : "application/json",
         "Authorization" : "Bearer {}".format(token)
     }
     data = {
-        "ids" : detectionids
+        "ids" : detection_ids
     }
 
-    r = requests.post(endpoint, headers=headers, data=data)
+    r = requests.post(endpoint_uri, headers=headers, data=json.dumps(data))
+    # noting here that data=data does NOT work, data should be a string NOT a JSON object
+    # this is different to GET where params should be a JSON object
     if r.status_code == 200:
         print("[+] Successful request for detection information...")
         j = r.json()

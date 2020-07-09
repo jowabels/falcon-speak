@@ -1,9 +1,6 @@
 # Project specific files
 config.py
-# Apparently the venv folder Scripts is not included in the Python gitignore template by github
-Scripts/
 pyvenv.cfg
-
 
 
 # Byte-compiled / optimized / DLL files

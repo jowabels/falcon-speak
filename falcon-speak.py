@@ -11,33 +11,36 @@ import json
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-g", "--generate", action="store_true", help="generate oauth token. token lasts for 30 minutes")
-    parser.add_argument("-t", "--token", type=str, help="provide the previously generated ouath token")
+    parser.add_argument("-g", "--generate", action="store_true", help="generate oauth token. token is valid for 30 minutes")
     parser.add_argument("-d", "--detections",action="store_true", help="retrieve Falcon detections. Returned data is < 10,000 items", default=False)
     args = parser.parse_args()
 
     if args.generate:
         print("\n[+] Requesting for oauth token...")
-        token = getOauthToken(config.API_URL, config.CLIENT_ID, config.CLIENT_SECRET)
-        print("[+] My token: {}".format(token))
-    elif args.token:
-        if not args.detections:
-            print("\n[+] -d/--detections argument is required, of course that token should be used for something. Exiting...")
-            sys.exit()
-        else:
-            print("\n[+] Getting list of Falcon detections...")
-            detection_ids = getListOfDetections(config.API_URL, args.token)
-            print("\n[+] Getting full info on the detection items...")
-            getDetectionInfo(config.API_URL, args.token, detection_ids)
+        get_token()
+    elif args.detections:
+        print("\n[+] Getting list of Falcon detections...")
+        detection_ids = get_detections_list()
+        print("\n[+] Getting full info on the detection items...")
+        get_detections_list_info(detection_ids)
     else:
         parser.print_help(sys.stderr)
 
 
-def getOauthToken(api_url, client_id, client_secret):
-    endpoint_uri = "{}/oauth2/token".format(api_url)
+def get_token():
+    '''
+        provided the API account client ID and secret, we request for a token
+        which will be used for subsequent API transactions. token is valid
+        for 30 minutes
+    '''
+
+    if os.path.exists(config.TOKEN_PATH):
+        os.remove(config.TOKEN_PATH)
+
+    endpoint_uri = "{}/oauth2/token".format(config.API_URL)
     data = {
-        "client_id" : client_id,
-        "client_secret": client_secret
+        "client_id" : config.CLIENT_ID,
+        "client_secret": config.CLIENT_SECRET
     }
 
     r = requests.post(endpoint_uri, data=data)
@@ -45,24 +48,72 @@ def getOauthToken(api_url, client_id, client_secret):
         print("[+] Successful token request...")
         j = r.json()
         token = j["access_token"]
-        return token
+
+        with open(config.TOKEN_PATH, "w") as fo:
+            fo.write(token)
+        print("[+] Successfully stored token to temporary file...")
+        print("[+] With a valid token, you may now use other script arguments...")
     else:
-        print("[+] Unsuccessful token request. Exiting...")
-        print("[+] Response code: {}...".format(r.status_code))
-        j = r.json()
-        errmsg = j["errors"][0]["message"]
-        print("[+] Error message: {}...".format(errmsg))
-        sys.exit()
+        unsucessful_http_request(r)
 
 
+def verify_token(offset=0, limit=1):
+    '''
+        there seems to be no API endpoint specifically for token verification. we
+        will use a crude method by simply making an API request (to a pre-defined endppoint)
+        and check if response_code is 403 or not. 403 --> forbidden, authentication failed.
+        when token verification fails, a new token is simply generated and stored on the temp token file
+    '''
+    
+    with open(config.TOKEN_PATH, "r") as fo:
+        token = fo.read()
+    print("[+] Verifying validity of current token...")
+    
+    endpoint_uri = "{}/detects/queries/detects/v1".format(config.API_URL)
+    headers = {
+        "Content-type" : "application/json",
+        "Accept" : "application/json",
+        "Authorization" : "Bearer {}".format(token)
+    }
+    params = {
+        "offset" : offset,
+        "limit" : limit
+    }
 
-def getListOfDetections(api_url, token, offset=0, limit=10):
+    r = requests.get(endpoint_uri, headers=headers, params=params)
+    if r.status_code == 403:
+        print("[+] Current token already expired. Requesting new one...")
+        get_token()
+    elif r.status_code == 200:
+        print("[+] Current token is still valid. Proceeding to API requests...")
+    else:
+        unsucessful_http_request(r)
+
+
+def read_token():
+    '''
+        simply read the temporary token file and return its content
+    '''
+
+    if not os.path.exists(config.TOKEN_PATH):
+        print("[+] Temporary token file does not seem to exist. Exiting...")
+    else:
+        with open(config.TOKEN_PATH, "r") as fo:
+            token = fo.read()
+        return token
+
+
+def get_detections_list(offset=0, limit=10):
     '''
         this function returns a list object, containing the IDs of the detection events
         in Falcon. this list of IDs are found in the "resources" key in the JSON
         response of the initial GET request
     '''
-    endpoint_uri = "{}/detects/queries/detects/v1".format(api_url)
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/detects/queries/detects/v1".format(config.API_URL)
     headers = {
         "Content-type" : "application/json",
         "Accept" : "application/json",
@@ -83,20 +134,19 @@ def getListOfDetections(api_url, token, offset=0, limit=10):
 
         return j["resources"]
     else:
-        print("[+] Unsuccessful request. Exiting...")
-        print("[+] Response code: {}...".format(r.status_code))
-        j = r.json()
-        errmsg = j["errors"][0]["message"]
-        print("[+] Error message: {}...".format(errmsg))
-        sys.exit()
+        unsucessful_http_request(r)
 
 
-def getDetectionInfo(api_url, token, detection_ids):
+def get_detections_list_info(detection_ids):
     '''
-        from the list object of detection IDs obtained from getListOfDetections, we now
+        from the list object of detection IDs obtained from get_detections_list, we now
         query a different API endpoint for more info on those detections
     '''
-    endpoint_uri = "{}/detects/entities/summaries/GET/v1".format(api_url)
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/detects/entities/summaries/GET/v1".format(config.API_URL)
     headers = {
         "Content-type" : "application/json",
         "Accept" : "application/json",
@@ -114,13 +164,21 @@ def getDetectionInfo(api_url, token, detection_ids):
         j = r.json()
         print(json.dumps(j, indent=4))
     else:
-        print("[+] Unsuccessful request. Exiting...")
-        print("[+] Response code: {}...".format(r.status_code))
-        j = r.json()
-        errmsg = j["errors"][0]["message"]
-        print("[+] Error message: {}...".format(errmsg))
-        print(json.dumps(j, indent=4))
-        sys.exit()
+        unsucessful_http_request(r)
+
+
+def unsucessful_http_request(r):
+    '''
+        generic error message when an API request fails. this
+        usually means the response code (r.status_code) of the request
+        is not 200, 201 or 403 (403 is different since it is used for token verification)
+    '''
+    print("[+] Unsuccessful request. Exiting...")
+    print("[+] Response code: {}...".format(r.status_code))
+    j = r.json()
+    errmsg = j["errors"][0]["message"]
+    print("[+] Error message: {}...".format(errmsg))
+    sys.exit()
 
 
 if __name__ == "__main__":

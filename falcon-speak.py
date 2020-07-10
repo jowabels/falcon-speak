@@ -14,6 +14,7 @@ def main():
     parser.add_argument("-g", "--generate", action="store_true", help="generate oauth token. token is valid for 30 minutes")
     parser.add_argument("-d", "--detections", action="store_true", help="retrieve Falcon detections. Returned data is < 10,000 items", default=False)
     parser.add_argument("-i", "--incidents", action="store_true", help="retrieve Falcon incidents. Returned data is < 500 items", default=False)
+    parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
     args = parser.parse_args()
 
     if args.generate:
@@ -33,6 +34,13 @@ def main():
         incidents_list = get_incidents_list()
         print("\n[+] Getting full info on the incident items...")
         get_incidents_list_info(incidents_list)
+        print("\n")
+
+    elif args.behaviors:
+        print("\n[+] Getting list of Falcon behaviors...")
+        behaviors_list = get_behaviors_list()
+        print("\n[+] Getting details for those behavior items...")
+        get_behaviors_list_info(behaviors_list)
         print("\n")
         
     else:
@@ -122,7 +130,7 @@ def read_token():
 def get_detections_list(offset=0, limit=10):
     '''
         this function returns a list object, containing the IDs of the detection events
-        in Falcon. this list of IDs are found in the "resources" key in the JSON
+        in Falcon. this list of IDs are found in the 'resources' key in the JSON
         response of the initial GET request
     '''
 
@@ -189,7 +197,7 @@ def get_detections_list_info(detections_list):
 def get_incidents_list(offset=0, limit=10):
     '''
         similar to get_detections_list, this returns a list object
-        of incident IDs. the list of IDs is in the "resources" key in
+        of incident IDs. the list of IDs is in the 'resources' key in
         JSON response
     '''
 
@@ -247,6 +255,72 @@ def get_incidents_list_info(incidents_list):
         print(json.dumps(j, indent=4))
     else:
         unsucessful_http_request()
+
+
+def get_behaviors_list(offset=0, limit=10):
+    '''
+        generic request to query behaviors. similar
+        to others, we need the behaviors_list found in the 'resources'
+        key in the JSON response
+    '''
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/incidents/queries/behaviors/v1".format(config.API_URL)
+    headers = {
+        "Content-type" : "application/json",
+        "Accept" : "application/json",
+        "Authorization" : "Bearer {}".format(token)
+    }
+    params = {
+        "offset" : offset,
+        "limit" : limit
+    }
+
+    r = requests.get(endpoint_uri, headers=headers, params=params)
+    if r.status_code == 200:
+        print("\t-- Successful request for behaviors list...")
+        j = r.json()
+
+        if not j["resources"]:
+            print("\t-- Unfortunately behaviors list is empty. No incidents! Exiting...")
+            sys.exit()
+        
+        return j["resources"]
+    else:
+        unsucessful_http_request(r)
+
+
+def get_behaviors_list_info(behaviors_list):
+    '''
+        from the list object of detection IDs obtained from get_behaviors_list, we now
+        query a different API endpoint for more info on those detections
+    '''
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/incidents/entities/behaviors/GET/v1".format(config.API_URL)
+    headers = {
+        "Content-type" : "application/json",
+        "Accept" : "application/json",
+        "Authorization" : "Bearer {}".format(token)
+    }
+    data = {
+        "ids" : behaviors_list
+    }
+
+    r = requests.post(endpoint_uri, headers=headers, data=json.dumps(data))
+    # noting here that data=data does NOT work, data should be a string NOT a JSON object
+    # this is different to GET where params should be a JSON object
+    if r.status_code == 200:
+        print("\t-- Successful request for behaviors information...")
+        j = r.json()
+        print(json.dumps(j, indent=4))
+    else:
+        unsucessful_http_request(r)
+
 
 
 

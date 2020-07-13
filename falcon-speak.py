@@ -15,6 +15,7 @@ def main():
     parser.add_argument("-d", "--detections", action="store_true", help="retrieve Falcon detections. Returned data is < 10,000 items", default=False)
     parser.add_argument("-i", "--incidents", action="store_true", help="retrieve Falcon incidents. Returned data is < 500 items", default=False)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
+    parser.add_argument("-dv", "--devices", action="store_true", help="retrieve Falcon devices/hosts. Returned data is < 150,000", default=False)
     args = parser.parse_args()
 
     if args.generate:
@@ -41,6 +42,11 @@ def main():
         behaviors_list = get_behaviors_list()
         print("\n[+] Getting details for those behavior items...")
         get_behaviors_list_info(behaviors_list)
+        print("\n")
+
+    elif args.devices:
+        print("\n[+] Getting list of Falcon devices/hosts...")
+        get_devices_list()
         print("\n")
         
     else:
@@ -284,7 +290,7 @@ def get_behaviors_list(offset=0, limit=10):
         j = r.json()
 
         if not j["resources"]:
-            print("\t-- Unfortunately behaviors list is empty. No incidents! Exiting...")
+            print("\t-- Unfortunately behaviors list is empty. Exiting...")
             sys.exit()
         
         return j["resources"]
@@ -320,6 +326,45 @@ def get_behaviors_list_info(behaviors_list):
         print(json.dumps(j, indent=4))
     else:
         unsucessful_http_request(r)
+
+
+def get_devices_list(offset=0, limit=10):
+    # ========================================
+    #   generic request to query devices/hosts. again,
+    #   the list is found in the 'resources' key in the
+    #   JSON response. we see now that proper queries
+    #   should be done via params and FQL
+    # ========================================
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/devices/queries/devices/v1".format(config.API_URL)
+    headers = {
+        "Content-type" : "application/json",
+        "Accept" : "application/json",
+        "Authorization" : "Bearer {}".format(token)
+    }
+    params = {
+        "offset" : offset,
+        "limit" : limit
+    }
+
+    r = requests.get(endpoint_uri, headers=headers, params=params)
+    if r.status_code == 200:
+        print("\t-- Successful request for devices list...")
+        j = r.json()
+
+        if not j["resources"]:
+            print("\t-- Unfortunately devices list is empty. No devices found! Exiting...")
+            sys.exit()
+        
+        print(json.dumps(j, indent=4))
+    else:
+        unsucessful_http_request(r)
+
+
+
 
 
 

@@ -58,11 +58,11 @@ def main():
 
 
 def get_token():
-    # ========================================
-    #   provided the API account client ID and secret, we request for a token
-    #   which will be used for subsequent API transactions. token is valid
-    #   for 30 minutes
-    # ========================================
+    '''
+        provided the API account client ID and secret, we request for a token
+        which will be used for subsequent API transactions. token is valid
+        for 30 minutes
+    '''
 
     if os.path.exists(config.TOKEN_PATH):
         os.remove(config.TOKEN_PATH)
@@ -88,12 +88,12 @@ def get_token():
 
 
 def verify_token(offset=0, limit=1):
-    # ========================================
-    #   there seems to be no API endpoint specifically for token verification. we
-    #   will use a crude method by simply making an API request (to a pre-defined endppoint)
-    #   and check if response_code is 403 or not. 403 --> forbidden, authentication failed.
-    #   when token verification fails, a new token is simply generated and stored on the temp token file
-    # ========================================s
+    '''
+        there seems to be no API endpoint specifically for token verification. we
+        will use a crude method by simply making an API request (to a pre-defined endppoint)
+        and check if response_code is 403 or not. 403 --> forbidden, authentication failed.
+        when token verification fails, a new token is simply generated and stored on the temp token file
+    '''
     
     with open(config.TOKEN_PATH, "r") as fo:
         token = fo.read()
@@ -121,9 +121,9 @@ def verify_token(offset=0, limit=1):
 
 
 def read_token():
-    # ========================================
-    #   simply read the temporary token file and return its content
-    # ========================================
+    '''
+        simply read the temporary token file and return its content
+    '''
 
     if not os.path.exists(config.TOKEN_PATH):
         print("\t-- Temporary token file does not seem to exist. Exiting...")
@@ -134,11 +134,11 @@ def read_token():
 
 
 def get_detections_list(offset=0, limit=10):
-    # ========================================
-    #   this function returns a list object, containing the IDs of the detection events
-    #   in Falcon. this list of IDs are found in the 'resources' key in the JSON
-    #   response of the initial GET request
-    # ========================================
+    '''
+        this function returns a list object, containing the IDs of the detection events
+        in Falcon. this list of IDs are found in the 'resources' key in the JSON
+        response of the initial GET request
+    '''
 
     verify_token()
     token = read_token()
@@ -171,10 +171,10 @@ def get_detections_list(offset=0, limit=10):
 
 
 def get_detections_list_info(detections_list):
-    # ========================================
-    #   from the list object of detection IDs obtained from get_detections_list, we now
-    #   query a different API endpoint for more info on those detections
-    # ========================================
+    '''
+        from the list object of detection IDs obtained from get_detections_list, we now
+        query a different API endpoint for more info on those detections
+    '''
 
     verify_token()
     token = read_token()
@@ -201,11 +201,11 @@ def get_detections_list_info(detections_list):
 
 
 def get_incidents_list(offset=0, limit=10):
-    # ========================================
-    #   similar to get_detections_list, this returns a list object
-    #   of incident IDs. the list of IDs is in the 'resources' key in
-    #   JSON response
-    # ========================================
+    '''
+        similar to get_detections_list, this returns a list object
+        of incident IDs. the list of IDs is in the 'resources' key in
+        JSON response
+    '''
 
     verify_token()
     token = read_token()
@@ -236,10 +236,10 @@ def get_incidents_list(offset=0, limit=10):
 
 
 def get_incidents_list_info(incidents_list):
-    # ========================================
-    #   from the list of incident IDs returned from get_incidents_list
-    #   we now query again for details about those incidents
-    # ========================================
+    '''
+        from the list of incident IDs returned from get_incidents_list
+        we now query again for details about those incidents
+    '''
 
     verify_token()
     token = read_token()
@@ -264,11 +264,11 @@ def get_incidents_list_info(incidents_list):
 
 
 def get_behaviors_list(offset=0, limit=10):
-    # ========================================
-    #   generic request to query behaviors. similar
-    #   to others, we need the behaviors_list found in the 'resources'
-    #   key in the JSON response
-    # ========================================
+    '''
+        generic request to query behaviors. similar
+        to others, we need the behaviors_list found in the 'resources'
+        key in the JSON response
+    '''
 
     verify_token()
     token = read_token()
@@ -299,10 +299,10 @@ def get_behaviors_list(offset=0, limit=10):
 
 
 def get_behaviors_list_info(behaviors_list):
-    # ========================================
-    #   from the list object of detection IDs obtained from get_behaviors_list, we now
-    #   query a different API endpoint for more info on those detections
-    # ========================================
+    '''
+        from the list object of detection IDs obtained from get_behaviors_list, we now
+        query a different API endpoint for more info on those detections
+    '''
 
     verify_token()
     token = read_token()
@@ -329,12 +329,12 @@ def get_behaviors_list_info(behaviors_list):
 
 
 def get_devices_list(offset=0, limit=10):
-    # ========================================
-    #   generic request to query devices/hosts. again,
-    #   the list is found in the 'resources' key in the
-    #   JSON response. we see now that proper queries
-    #   should be done via params and FQL
-    # ========================================
+    '''
+        generic request to query devices/hosts. again,
+        the list is found in the 'resources' key in the
+        JSON response. we see now that proper queries
+        should be done via params and FQL
+    '''
 
     verify_token()
     token = read_token()
@@ -370,11 +370,11 @@ def get_devices_list(offset=0, limit=10):
 
 
 def unsucessful_http_request(r):
-    # ========================================
-    #   generic error message when an API request fails. this
-    #   usually means the response code (r.status_code) of the request
-    #   is not 200, 201 or 403 (403 is different since it is used for token verification)
-    # ========================================
+    '''
+        generic error message when an API request fails. this
+        usually means the response code (r.status_code) of the request
+        is not 200, 201 or 403 (403 is different since it is used for token verification)
+    '''
 
     print("\n[+] Unsuccessful request. Exiting...")
     print("\t-- Response code: {}...".format(r.status_code))

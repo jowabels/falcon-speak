@@ -1,6 +1,9 @@
-# speak with CS Falcon API
-# 2020/7/8, v0.1
-# by jowabels - twitter.com/jowabels
+'''
+    speak with CS Falcon API
+    by @jowabels
+    v0.1
+'''
+
 
 import config
 import requests
@@ -46,7 +49,9 @@ def main():
 
     elif args.devices:
         print("\n[+] Getting list of Falcon devices/hosts...")
-        get_devices_list()
+        devices_list = get_devices_list()
+        print("\n[+] Getting details for the retrieved devices list...")
+        get_devices_list_info(devices_list)
         print("\n")
         
     else:
@@ -359,6 +364,38 @@ def get_devices_list(offset=0, limit=10):
             print("\t-- Unfortunately devices list is empty. No devices found! Exiting...")
             sys.exit()
         
+        return j["resources"]
+    else:
+        unsucessful_http_request(r)
+
+
+def get_devices_list_info(devices_list):
+    '''
+        from the list object of device IDs obtained from get_devices_list, we now
+        query a different API endpoint for more info on those devices. note
+        that this is different since it is a GET request, unlike other "get more info"
+        functions that use a POST request
+    '''
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/devices/entities/devices/v1".format(config.API_URL)
+    headers = {
+        "Content-type" : "application/json",
+        "Accept" : "application/json",
+        "Authorization" : "Bearer {}".format(token)
+    }
+    params = {
+        "ids" : devices_list
+    }
+
+    r = requests.get(endpoint_uri, headers=headers, params=params)
+    # note here that this "get more info" function uses a GET request, not a POST unlike
+    # the others. also, params should be JSON object, data should be a string JSON
+    if r.status_code == 200:
+        print("\t-- Successful request for devices information...")
+        j = r.json()
         print(json.dumps(j, indent=4))
     else:
         unsucessful_http_request(r)

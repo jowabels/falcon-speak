@@ -24,6 +24,7 @@ def main():
     if args.generate:
         print("\n[+] Requesting for oauth token...")
         get_token()
+        print_token()
         print("\n")
 
     elif args.detections:
@@ -90,6 +91,19 @@ def get_token():
         print("\t-- With a valid token, you may now use other script arguments...")
     else:
         unsucessful_http_request(r)
+
+
+def print_token():
+    '''
+        simply print out the contents of TOKEN.TEMP. this is to simply
+        differentiate the -g/--generate argument
+    '''
+    
+    if os.path.exists(config.TOKEN_PATH):
+        with open(config.TOKEN_PATH, "r") as fo:
+            print("\t-- Generated token: ")
+            print(fo.read())
+        
 
 
 def verify_token(offset=0, limit=1):

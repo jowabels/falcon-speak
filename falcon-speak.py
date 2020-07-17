@@ -279,7 +279,7 @@ def get_incidents_list_info(incidents_list):
         j = r.json()
         print(json.dumps(j, indent=4))
     else:
-        unsucessful_http_request()
+        unsucessful_http_request(r)
 
 
 def get_behaviors_list(offset=0, limit=10):

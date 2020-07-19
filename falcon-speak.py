@@ -4,6 +4,13 @@
     v0.2
 '''
 
+'''
+    some lessons learned:
+        - data in data=data, should be a JSON string. otherwise, it won't work
+        - params in params=params, should be a JSON object. otherwise, it won't work
+        - again, data and params are both JSON but the difference is the type. one is a string, other is an object
+'''
+
 
 import config
 import requests
@@ -174,8 +181,6 @@ def get_detections_list(offset=0, limit=10):
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)
-    # noting here that params=json.dumps(params) does NOT work, params should be a JSON object
-    # this is difference to POST where data should be a string, not a JSON object
     if r.status_code == 200:
         print("\t-- Successful request for detection list...")
         j = r.json()
@@ -209,8 +214,6 @@ def get_detections_list_info(detections_list):
     }
 
     r = requests.post(endpoint_uri, headers=headers, data=json.dumps(data))
-    # noting here that data=data does NOT work, data should be a string NOT a JSON object
-    # this is different to GET where params should be a JSON object
     if r.status_code == 200:
         print("\t-- Successful request for detection information...")
         j = r.json()
@@ -337,8 +340,6 @@ def get_behaviors_list_info(behaviors_list):
     }
 
     r = requests.post(endpoint_uri, headers=headers, data=json.dumps(data))
-    # noting here that data=data does NOT work, data should be a string NOT a JSON object
-    # this is different to GET where params should be a JSON object
     if r.status_code == 200:
         print("\t-- Successful request for behaviors information...")
         j = r.json()

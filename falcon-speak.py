@@ -402,12 +402,11 @@ def get_devices_list_info(devices_list):
         "Authorization" : "Bearer {}".format(token)
     }
     params = {
-        "ids" : devices_list
+        "ids" : devices_list[0]
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)
-    # note here that this "get more info" function uses a GET request, not a POST unlike
-    # the others. also, params should be JSON object, data should be a string JSON
+    # note here that this "get more info" function uses a GET instead of POST, unlike the others
     if r.status_code == 200:
         print("\t-- Successful request for devices information...")
         j = r.json()

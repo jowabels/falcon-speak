@@ -11,12 +11,13 @@
         - again, data and params are both JSON but the difference is the type. one is a string, other is an object
 '''
 
-
-import config
-import requests
 import os, sys
 import argparse
 import json
+
+import config
+import requests
+import prettytable
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     parser.add_argument("-d", "--detections", action="store_true", help="retrieve Falcon detections. Returned data is < 10,000 items", default=False)
     parser.add_argument("-i", "--incidents", action="store_true", help="retrieve Falcon incidents. Returned data is < 500 items", default=False)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
-    parser.add_argument("-dv", "--devices", action="store_true", help="retrieve Falcon devices/hosts. Returned data is < 150,000", default=False)
+    parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str, required=True)
     args = parser.parse_args()
 
     if args.generate:
@@ -55,10 +56,11 @@ def main():
         get_behaviors_list_info(behaviors_list)
         print("\n")
 
-    elif args.devices:
-        print("\n[+] Getting list of Falcon devices/hosts...")
-        devices_list = get_devices_list()
-        print("\n[+] Getting details for the retrieved devices list...")
+    elif args.hostname:
+        hostname = args.hostname
+        print("\n[+] Searching for {} in Falcon...".format(hostname))
+        devices_list = get_devices_list(hostname)
+        print("\n[+] Getting device details for {}...".format(hostname))
         get_devices_list_info(devices_list)
         print("\n")
         
@@ -348,12 +350,15 @@ def get_behaviors_list_info(behaviors_list):
         unsucessful_http_request(r)
 
 
-def get_devices_list(offset=0, limit=10):
+def get_devices_list(hostname, offset=0, limit=10):
     '''
-        generic request to query devices/hosts. again,
-        the list is found in the 'resources' key in the
-        JSON response. we see now that proper queries
-        should be done via params and FQL
+        using the input hostname, we query the host API
+        endpoint by using that hostname in an FQL in params.
+        query is not an exact matching but rather a LIKE/SIMILAR
+        match
+
+        devices that match the input can be found in the 'resources'
+        key in the JSON response
     '''
 
     verify_token()
@@ -367,7 +372,8 @@ def get_devices_list(offset=0, limit=10):
     }
     params = {
         "offset" : offset,
-        "limit" : limit
+        "limit" : limit,
+        "filter" : "hostname: '{}'".format(hostname)
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)
@@ -402,7 +408,7 @@ def get_devices_list_info(devices_list):
         "Authorization" : "Bearer {}".format(token)
     }
     params = {
-        "ids" : devices_list[0]
+        "ids" : devices_list
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)
@@ -410,7 +416,16 @@ def get_devices_list_info(devices_list):
     if r.status_code == 200:
         print("\t-- Successful request for devices information...")
         j = r.json()
-        print(json.dumps(j, indent=4))
+
+        # start looping through the returned list of devices and details, and prettytable print them
+        table = prettytable.PrettyTable()
+        table.field_names = ["Device ID", "Hostname", "OS Version", "External IP", "Last Seen", "Product Name"]
+        for d in j["resources"]:
+            table.add_row([d["device_id"], d["hostname"], d["os_version"], d["external_ip"], d["last_seen"], d["system_product_name"]])
+
+        print("\n")
+        print(table)
+
     else:
         unsucessful_http_request(r)
 

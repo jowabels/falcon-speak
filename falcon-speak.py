@@ -26,7 +26,7 @@ def main():
     parser.add_argument("-d", "--detections", action="store_true", help="retrieve Falcon detections. Returned data is < 10,000 items", default=False)
     parser.add_argument("-i", "--incidents", action="store_true", help="retrieve Falcon incidents. Returned data is < 500 items", default=False)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
-    parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str, required=True)
+    parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str)
     args = parser.parse_args()
 
     if args.generate:
@@ -166,6 +166,9 @@ def get_detections_list(offset=0, limit=10):
         this function returns a list object, containing the IDs of the detection events
         in Falcon. this list of IDs are found in the 'resources' key in the JSON
         response of the initial GET request
+
+        through filter params and FQL, we only return detections that are tagged
+        as new, in_progress or true_positive
     '''
 
     verify_token()
@@ -180,6 +183,7 @@ def get_detections_list(offset=0, limit=10):
     params = {
         "offset" : offset,
         "limit" : limit
+        # "filter" : "status:'new', status:'in_progress', status:'true_positive'"
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)
@@ -188,7 +192,7 @@ def get_detections_list(offset=0, limit=10):
         j = r.json()
 
         if not j["resources"]:
-            print("\t-- Unfortunately detections list is empty. No detections! Exiting...")
+            print("\t-- Detections list is empty! No detections that are NEW, IN_PROGRESS or TRUE_POSITIVE. Exiting...")
             sys.exit()
 
         return j["resources"]
@@ -219,7 +223,16 @@ def get_detections_list_info(detections_list):
     if r.status_code == 200:
         print("\t-- Successful request for detection information...")
         j = r.json()
-        print(json.dumps(j, indent=4))
+        
+        # start looping through the returned list of devices and details, and prettytable print them
+        table = prettytable.PrettyTable()
+        table.field_names = ["Detection ID", "Detection Technique", "Detected Command", "Filename", "Parent Command", "Last Observed", "Hostname"]
+        for i in j["resources"]:
+            table.add_row([i["detection_id"], i["behaviors"][0]["technique"], i["behaviors"][0]["cmdline"], i["behaviors"][0]["filename"], i["behaviors"][0]["parent_details"]["parent_cmdline"], i["last_behavior"], i["device"]["hostname"]])
+
+        print("\n")
+        print(table)
+
     else:
         unsucessful_http_request(r)
 
@@ -373,7 +386,7 @@ def get_devices_list(hostname, offset=0, limit=10):
     params = {
         "offset" : offset,
         "limit" : limit,
-        "filter" : "hostname: '{}'".format(hostname)
+        "filter" : "hostname:'{}'".format(hostname)
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)

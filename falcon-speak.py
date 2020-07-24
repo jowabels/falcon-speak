@@ -182,8 +182,8 @@ def get_detections_list(offset=0, limit=10):
     }
     params = {
         "offset" : offset,
-        "limit" : limit
-        # "filter" : "status:'new', status:'in_progress', status:'true_positive'"
+        "limit" : limit,
+        "filter" : "status:'new', status:'in_progress', status:'true_positive'"
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)

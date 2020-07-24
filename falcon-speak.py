@@ -9,6 +9,7 @@
         - data in data=data, should be a JSON string. otherwise, it won't work
         - params in params=params, should be a JSON object. otherwise, it won't work
         - again, data and params are both JSON but the difference is the type. one is a string, other is an object
+        - the API queries searches ALL events. for example, exact search for a hostanme may return multiple items if there other events for that hostname, such as detection events
 '''
 
 import os, sys
@@ -429,6 +430,7 @@ def get_devices_list_info(devices_list):
     if r.status_code == 200:
         print("\t-- Successful request for devices information...")
         j = r.json()
+        print(json.dumps(j, indent=4))
 
         # start looping through the returned list of devices and details, and prettytable print them
         table = prettytable.PrettyTable()

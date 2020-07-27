@@ -10,6 +10,8 @@
         - params in params=params, should be a JSON object. otherwise, it won't work
         - again, data and params are both JSON but the difference is the type. one is a string, other is an object
         - the API queries searches ALL events. for example, exact search for a hostanme may return multiple items if there other events for that hostname, such as detection events
+        - due to previous statement, it is possible for an item search to return multiple IDs
+        - choices parameter in argparse allow choices for each argument
 '''
 
 import os, sys
@@ -21,24 +23,36 @@ import requests
 import prettytable
 
 
+LIMIT = 10 # limit of number of query items to return
+OFFSET = 0 # start getting query items to return from this offset in endpoint list
+
+
+
+
 def main():
     parser = argparse.ArgumentParser()
+
     parser.add_argument("-g", "--generate", action="store_true", help="generate oauth token. token is valid for 30 minutes")
-    parser.add_argument("-d", "--detections", action="store_true", help="retrieve Falcon detections. Returned data is < 10,000 items", default=False)
+    parser.add_argument("-d", "--detections", action="store", choices=["default", "all"], help="retrieve [default/all] Falcon detections. default only returns detections that are NEW, IN_PROGRESS or TRUE_POSITIVE", type=str)
     parser.add_argument("-i", "--incidents", action="store_true", help="retrieve Falcon incidents. Returned data is < 500 items", default=False)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
     parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str)
     args = parser.parse_args()
 
     if args.generate:
-        print("\n[+] Requesting for oauth token...")
+        print("\n[+] Requesting for oAuth token...")
         get_token()
         print_token()
         print("\n")
 
     elif args.detections:
-        print("\n[+] Getting list of Falcon detections...")
-        detections_list = get_detections_list()
+        if args.detections.lower() == "all":
+            filter_option = ""
+        elif args.detections.lower() == "default":
+            filter_option = "status:'new', status:'in_progress', status:'true_positive'"
+
+        print("\n[+] Getting list of Falcon [{}] detections...".format(args.detections.lower()))
+        detections_list = get_detections_list(filter_option)
         print("\n[+] Getting full info on the detection items...")
         get_detections_list_info(detections_list)
         print("\n")
@@ -116,7 +130,7 @@ def print_token():
         
 
 
-def verify_token(offset=0, limit=1):
+def verify_token(offset=OFFSET, limit=LIMIT):
     '''
         there seems to be no API endpoint specifically for token verification. we
         will use a crude method by simply making an API request (to a pre-defined endppoint)
@@ -162,14 +176,14 @@ def read_token():
         return token
 
 
-def get_detections_list(offset=0, limit=10):
+def get_detections_list(filter_option, offset=OFFSET, limit=LIMIT):
     '''
         this function returns a list object, containing the IDs of the detection events
         in Falcon. this list of IDs are found in the 'resources' key in the JSON
         response of the initial GET request
 
         through filter params and FQL, we only return detections that are tagged
-        as new, in_progress or true_positive
+        as NEW, IN_PROGRESS or TRUE_POSITIVE
     '''
 
     verify_token()
@@ -184,7 +198,7 @@ def get_detections_list(offset=0, limit=10):
     params = {
         "offset" : offset,
         "limit" : limit,
-        "filter" : "status:'new', status:'in_progress', status:'true_positive'"
+        "filter" : filter_option
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)
@@ -238,7 +252,7 @@ def get_detections_list_info(detections_list):
         unsucessful_http_request(r)
 
 
-def get_incidents_list(offset=0, limit=10):
+def get_incidents_list(offset=OFFSET, limit=LIMIT):
     '''
         similar to get_detections_list, this returns a list object
         of incident IDs. the list of IDs is in the 'resources' key in
@@ -301,7 +315,7 @@ def get_incidents_list_info(incidents_list):
         unsucessful_http_request(r)
 
 
-def get_behaviors_list(offset=0, limit=10):
+def get_behaviors_list(offset=OFFSET, limit=LIMIT):
     '''
         generic request to query behaviors. similar
         to others, we need the behaviors_list found in the 'resources'
@@ -364,7 +378,7 @@ def get_behaviors_list_info(behaviors_list):
         unsucessful_http_request(r)
 
 
-def get_devices_list(hostname, offset=0, limit=10):
+def get_devices_list(hostname, offset=OFFSET, limit=LIMIT):
     '''
         using the input hostname, we query the host API
         endpoint by using that hostname in an FQL in params.
@@ -430,7 +444,6 @@ def get_devices_list_info(devices_list):
     if r.status_code == 200:
         print("\t-- Successful request for devices information...")
         j = r.json()
-        print(json.dumps(j, indent=4))
 
         # start looping through the returned list of devices and details, and prettytable print them
         table = prettytable.PrettyTable()

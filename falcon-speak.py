@@ -188,7 +188,7 @@ def get_detections_list(filter_option, offset=OFFSET, limit=LIMIT):
         response of the initial GET request
 
         through filter params and FQL, we only return detections that are tagged
-        as NEW, IN_PROGRESS or TRUE_POSITIVE
+        as NEW, IN_PROGRESS or TRUE_POSITIVE. returned items are sorted for last observed event first
     '''
 
     verify_token()
@@ -203,6 +203,7 @@ def get_detections_list(filter_option, offset=OFFSET, limit=LIMIT):
     params = {
         "offset" : offset,
         "limit" : limit,
+        "sort" : "last_behavior|desc",
         "filter" : filter_option
     }
 
@@ -264,7 +265,7 @@ def get_incidents_list(filter_option, offset=OFFSET, limit=LIMIT):
         JSON response
 
         through filter params and FQL, we only return incidents that are tagged
-        as NEW, IN_PROGRESS or TRUE_POSITIVE
+        as NEW, IN_PROGRESS or TRUE_POSITIVE. returned items are sorted for last observed event first
     '''
 
     verify_token()
@@ -279,6 +280,7 @@ def get_incidents_list(filter_option, offset=OFFSET, limit=LIMIT):
     params = {
         "offset" : offset,
         "limit" : limit,
+        "sort" : "last_behavior|desc",
         "filter" : filter_option
     }
 

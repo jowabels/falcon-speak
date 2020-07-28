@@ -34,7 +34,7 @@ def main():
 
     parser.add_argument("-g", "--generate", action="store_true", help="generate oauth token. token is valid for 30 minutes")
     parser.add_argument("-d", "--detections", action="store", choices=["default", "all"], help="retrieve {default/all} Falcon detections. default only returns detections that are NEW, IN_PROGRESS or TRUE_POSITIVE", type=str)
-    parser.add_argument("-i", "--incidents", action="store_true", help="retrieve Falcon incidents. Returned data is < 500 items", default=False)
+    parser.add_argument("-i", "--incidents", action="store", choices=["default", "all"], help="retrieve {default/all} Falcon incidents. default only returns incidents that are NEW, IN_PROGRESS or TRUE_POSITIVE", type=str)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
     parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str)
     args = parser.parse_args()
@@ -58,8 +58,13 @@ def main():
         print("\n")
 
     elif args.incidents:
-        print("\n[+] Getting list of Falcon incidents...")
-        incidents_list = get_incidents_list()
+        if args.incidents.lower() == "all":
+            filter_option = ""
+        elif args.incidents.lower() == "default":
+            filter_option = "status:'new', status:'in_progress', status:'true_positive'"
+
+        print("\n[+] Getting list of Falcon [{}] incidents...".format(args.incidents.lower()))
+        incidents_list = get_incidents_list(filter_option)
         print("\n[+] Getting full info on the incident items...")
         get_incidents_list_info(incidents_list)
         print("\n")
@@ -252,11 +257,14 @@ def get_detections_list_info(detections_list):
         unsucessful_http_request(r)
 
 
-def get_incidents_list(offset=OFFSET, limit=LIMIT):
+def get_incidents_list(filter_option, offset=OFFSET, limit=LIMIT):
     '''
         similar to get_detections_list, this returns a list object
         of incident IDs. the list of IDs is in the 'resources' key in
         JSON response
+
+        through filter params and FQL, we only return incidents that are tagged
+        as NEW, IN_PROGRESS or TRUE_POSITIVE
     '''
 
     verify_token()
@@ -270,7 +278,8 @@ def get_incidents_list(offset=OFFSET, limit=LIMIT):
     }
     params = {
         "offset" : offset,
-        "limit" : limit
+        "limit" : limit,
+        "filter" : filter_option
     }
 
     r = requests.get(endpoint_uri, headers=headers, params=params)

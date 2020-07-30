@@ -412,6 +412,7 @@ def get_devices_list(hostname, offset=OFFSET, limit=LIMIT):
     params = {
         "offset" : offset,
         "limit" : limit,
+        "sort" : "last_seen|desc",
         "filter" : "hostname:'{}'".format(hostname)
     }
 

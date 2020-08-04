@@ -36,7 +36,7 @@ def main():
 
     parser.add_argument("-g", "--generate", action="store_true", help="generate oauth token. token is valid for 30 minutes")
     parser.add_argument("-d", "--detections", action="store", choices=["default", "all"], help="retrieve {default/all} Falcon detections. default only returns detections that are NEW, IN_PROGRESS or TRUE_POSITIVE", type=str)
-    parser.add_argument("-i", "--incidents", action="store", choices=["default", "all"], help="retrieve {default/all} Falcon incidents. default only returns incidents that are NEW, IN_PROGRESS or TRUE_POSITIVE", type=str)
+    parser.add_argument("-i", "--incidents", action="store", choices=["default", "all"], help="retrieve {default/all} Falcon incidents. default only returns incidents that are NEW, REOPENED or IN_PROGRESS", type=str)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
     parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str)
     args = parser.parse_args()
@@ -344,7 +344,7 @@ def get_incidents_list_info(incidents_list):
 
         print("\n")
         print(table)
-        
+
     else:
         unsucessful_http_request(r)
 

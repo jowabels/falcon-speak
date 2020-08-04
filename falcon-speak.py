@@ -26,8 +26,10 @@ import prettytable
 LIMIT = 10 # limit of number of query items to return
 OFFSET = 0 # start getting query items to return from this offset in endpoint list
 
-
-
+# filter query to limit the returned items. default returns items that are prioritized to be check, like new, true positive, etc
+FILTER_DETECTIONS = "status:'new', status:'in_progress', status:'true_positive'"
+# for some reason, 'status' property for incidents use numbers. 20: New, 25: Reopened, 30: In Progress
+FILTER_INCIDENTS = "status: 20, status: 25, status: 30"
 
 def main():
     parser = argparse.ArgumentParser()
@@ -49,7 +51,7 @@ def main():
         if args.detections.lower() == "all":
             filter_option = ""
         elif args.detections.lower() == "default":
-            filter_option = "status:'new', status:'in_progress', status:'true_positive'"
+            filter_option = FILTER_DETECTIONS
 
         print("\n[+] Getting list of Falcon [{}] detections...".format(args.detections.lower()))
         detections_list = get_detections_list(filter_option)
@@ -61,7 +63,7 @@ def main():
         if args.incidents.lower() == "all":
             filter_option = ""
         elif args.incidents.lower() == "default":
-            filter_option = "status:'new', status:'in_progress', status:'true_positive'"
+            filter_option = FILTER_INCIDENTS
 
         print("\n[+] Getting list of Falcon [{}] incidents...".format(args.incidents.lower()))
         incidents_list = get_incidents_list(filter_option)
@@ -203,7 +205,7 @@ def get_detections_list(filter_option, offset=OFFSET, limit=LIMIT):
     params = {
         "offset" : offset,
         "limit" : limit,
-        "sort" : "last_behavior|desc",
+        "sort" : "last_behavior.desc",
         "filter" : filter_option
     }
 
@@ -245,7 +247,7 @@ def get_detections_list_info(detections_list):
         print("\t-- Successful request for detection information...")
         j = r.json()
         
-        # start looping through the returned list of devices and details, and prettytable print them
+        # start looping through the returned list of detections and details, and prettytable print them
         table = prettytable.PrettyTable()
         table.field_names = ["Detection ID", "Detection Technique", "Detected Command", "Filename", "Parent Command", "Last Observed", "Hostname"]
         for i in j["resources"]:
@@ -280,7 +282,7 @@ def get_incidents_list(filter_option, offset=OFFSET, limit=LIMIT):
     params = {
         "offset" : offset,
         "limit" : limit,
-        "sort" : "last_behavior|desc",
+        "sort" : "start.desc",
         "filter" : filter_option
     }
 
@@ -321,7 +323,28 @@ def get_incidents_list_info(incidents_list):
     if r.status_code == 200:
         print("\t-- Successful request for incident information...")
         j = r.json()
-        print(json.dumps(j, indent=4))
+
+        # start looping through the returned list of detections and details, and prettytable print them
+        table = prettytable.PrettyTable()
+        table.field_names = ["Incident ID", "Incident Score", "Timestamp", "Tactics", "Techniques", "Objectives", "Hostname", "User", "OS Version", "IP Address"]
+        for i in j["resources"]:
+            # iterate through the techniques, tactics and objectives in this incident
+            i_tactics = "\n".join([tactic for tactic in i["tactics"]])
+            i_techniques = "\n".join([techniques for techniques in i["techniques"]])
+            i_objectives = "\n".join([objectives for objectives in i["objectives"]])
+
+            # iterate through all hosts involved in the incident
+            i_hostnames = "\n".join([host["hostname"] for host in i["hosts"]])
+            i_osversions = "\n".join([host["os_version"] for host in i["hosts"]])
+            i_ips = "\n".join([host["local_ip"] for host in i["hosts"]])
+
+            # iterate through all users involved in the incident
+            i_users = "\n".join([user for user in i["users"]])
+            table.add_row([i["incident_id"], i["fine_score"], i["start"], i_tactics, i_techniques, i_objectives, i_hostnames, i_users, i_osversions, i_ips])
+
+        print("\n")
+        print(table)
+        
     else:
         unsucessful_http_request(r)
 
@@ -412,7 +435,7 @@ def get_devices_list(hostname, offset=OFFSET, limit=LIMIT):
     params = {
         "offset" : offset,
         "limit" : limit,
-        "sort" : "last_seen|desc",
+        "sort" : "last_seen.desc",
         "filter" : "hostname:'{}'".format(hostname)
     }
 

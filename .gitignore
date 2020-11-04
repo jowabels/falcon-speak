@@ -2,6 +2,8 @@
 config.py
 pyvenv.cfg
 TOKEN.TEMP
+.vscode
+.vscode/
 
 
 # Byte-compiled / optimized / DLL files

@@ -11,3 +11,5 @@ cd falcon-speak
 python -m venv [venv]   # or whatever name you want for the virtual env
 pip install -r requirements.txt
 ```
+## Config
+For your config data, such as API keys/urls/tokens/IDs/secrets or whatnot, place them inside a `config.py` file (same folder as the script).

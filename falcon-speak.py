@@ -39,6 +39,7 @@ def main():
     parser.add_argument("-i", "--incidents", action="store", choices=["default", "all"], help="retrieve {default/all} Falcon incidents. default only returns incidents that are NEW, REOPENED or IN_PROGRESS", type=str)
     parser.add_argument("-b", "--behaviors", action="store_true", help="retrieve Falcon behaviors. Returned data is < 500 items", default=False)
     parser.add_argument("-hn", "--hostname", action="store", help="retrieve info from Falcon on specified hostname", type=str)
+    parser.add_argument("-p", "--policies", action="store_true", help="get all policies in our environment", default=False)
     args = parser.parse_args()
 
     if args.generate:
@@ -85,6 +86,11 @@ def main():
         print("\n[+] Getting device details for {}...".format(hostname))
         get_devices_list_info(devices_list)
         print("\n")
+
+    elif args.policies:
+        print("\n[+] Getting list of policies...")
+        get_policies()
+        print("\n")
         
     else:
         parser.print_help(sys.stderr)
@@ -124,6 +130,7 @@ def get_token():
         unsucessful_http_request(r)
 
 
+
 def print_token():
     '''
         simply print out the contents of TOKEN.TEMP. this is to simply
@@ -134,7 +141,7 @@ def print_token():
         with open(config.TOKEN_PATH, "r") as fo:
             print("\t-- Generated token: ")
             print(fo.read())
-        
+
 
 
 def verify_token(offset=OFFSET, limit=LIMIT):
@@ -170,6 +177,7 @@ def verify_token(offset=OFFSET, limit=LIMIT):
         unsucessful_http_request(r)
 
 
+
 def read_token():
     '''
         simply read the temporary token file and return its content
@@ -181,6 +189,7 @@ def read_token():
         with open(config.TOKEN_PATH, "r") as fo:
             token = fo.read()
         return token
+
 
 
 def get_detections_list(filter_option, offset=OFFSET, limit=LIMIT):
@@ -223,6 +232,7 @@ def get_detections_list(filter_option, offset=OFFSET, limit=LIMIT):
         unsucessful_http_request(r)
 
 
+
 def get_detections_list_info(detections_list):
     '''
         from the list object of detection IDs obtained from get_detections_list, we now
@@ -258,6 +268,7 @@ def get_detections_list_info(detections_list):
 
     else:
         unsucessful_http_request(r)
+
 
 
 def get_incidents_list(filter_option, offset=OFFSET, limit=LIMIT):
@@ -298,6 +309,7 @@ def get_incidents_list(filter_option, offset=OFFSET, limit=LIMIT):
         return j["resources"]
     else:
         unsucessful_http_request(r)
+
 
 
 def get_incidents_list_info(incidents_list):
@@ -349,6 +361,7 @@ def get_incidents_list_info(incidents_list):
         unsucessful_http_request(r)
 
 
+
 def get_behaviors_list(offset=OFFSET, limit=LIMIT):
     '''
         generic request to query behaviors. similar
@@ -384,6 +397,7 @@ def get_behaviors_list(offset=OFFSET, limit=LIMIT):
         unsucessful_http_request(r)
 
 
+
 def get_behaviors_list_info(behaviors_list):
     '''
         from the list object of detection IDs obtained from get_behaviors_list, we now
@@ -410,6 +424,7 @@ def get_behaviors_list_info(behaviors_list):
         print(json.dumps(j, indent=4))
     else:
         unsucessful_http_request(r)
+
 
 
 def get_devices_list(hostname, offset=OFFSET, limit=LIMIT):
@@ -453,6 +468,7 @@ def get_devices_list(hostname, offset=OFFSET, limit=LIMIT):
         unsucessful_http_request(r)
 
 
+
 def get_devices_list_info(devices_list):
     '''
         from the list object of device IDs obtained from get_devices_list, we now
@@ -488,6 +504,36 @@ def get_devices_list_info(devices_list):
 
         print("\n")
         print(table)
+
+    else:
+        unsucessful_http_request(r)
+
+
+
+def get_policies():
+    '''
+        get all policies in our environment. we can search for specific policies by using FQL, but
+        we did not implement that functionality at the moment
+    '''
+
+    verify_token()
+    token = read_token()
+
+    endpoint_uri = "{}/policy/combined/prevention/v1".format(config.API_URL)
+    headers = {
+        "Content-type" : "application/json",
+        "Accept" : "application/json",
+        "Authorization" : "Bearer {}".format(token)
+    }
+
+    r = requests.get(endpoint_uri, headers=headers, params=params)
+    # note here that this "get more info" function uses a GET instead of POST, unlike the others
+    if r.status_code == 200:
+        print("\t-- Successful request for devices information...")
+        j = r.json()
+        print(json.dumps(j, indent=4))
+        
+        # I currently have no valid API access now so I can't test properly dammit
 
     else:
         unsucessful_http_request(r)

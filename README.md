@@ -1,5 +1,5 @@
 # falcon-speak
-This is a script used to talk with CrowdStrike Falcon API (assuming you have a valid API account). Their documentation can be found [here](https://falcon.crowdstrike.com/support/documentation).
+This is a script used to talk with CrowdStrike Falcon API (assuming you have a valid API account). Their documentation can be found [here](https://falcon.crowdstrike.com/support/documentation). Python 3 is all you need.
 
 ## Installation
 I use virtual environments for everything so if you are like me that don't want to install system-wide Python libraries, packages and want the feeling of having an organized and clean system, just use `venv`.
